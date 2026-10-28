@@ -10,15 +10,27 @@ export const auth={
   clear:()=>{tokenStore.clear();emailStore.clear();}
 };
 export class ApiError extends Error{constructor(message,status){super(message);this.status=status;}}
+// Optional Boomi APIs, each with its own switch (the /boomi dev proxy adds the Boomi shared-web-server login, so no browser popup).
+const on=name=>import.meta.env[name]==='true';
+const boomiRoutes={...(on('VITE_BOOMI_LOGIN')?{'POST /api/auth/login':'/boomi/ws/rest/login/v1/login/'}:{}),...(on('VITE_BOOMI_HEALTH')?{'GET /health':'/boomi/ws/simple/getHealth'}:{}),...(on('VITE_BOOMI_MEMBERS')?{'POST /api/members':'/boomi/ws/simple/createMember'}:{}),...(on('VITE_BOOMI_DASHBOARD')?{'GET /api/dashboard':'/boomi/ws/simple/getDashboard'}:{})};
 export async function request(path,{method='GET',body,raw=false}={}){
   let response;
   const token=auth.get();
-  try{response=await fetch(base+path,{method,headers:{...tunnelHeaders,...(token?{Authorization:'Bearer '+token}:{}),...(body!==undefined?{'Content-Type':'application/json'}:{})},body:body!==undefined?JSON.stringify(body):undefined});}
+  const boomiUrl=boomiRoutes[method+' '+path];
+  const url=boomiUrl||base+path;
+  // Boomi's own login uses the Authorization header, so the session token travels in X-User-Token on Boomi calls.
+  const who=!token?{}:boomiUrl?{'X-User-Token':token}:{Authorization:'Bearer '+token};
+  try{response=await fetch(url,{method,headers:{...tunnelHeaders,...who,...(body!==undefined?{'Content-Type':'application/json'}:{})},body:body!==undefined?JSON.stringify(body):undefined});}
   catch{throw new ApiError('Cannot reach the backend. Start FastAPI on port 8000 and check the frontend proxy.',0);}
-  if(!response.ok){let data;try{data=await response.json();}catch{}const detail=data?.detail;throw new ApiError(typeof detail==='string'?detail:detail?detail.map(d=>d.loc.join('.')+': '+d.msg).join('; '):'Request failed ('+response.status+')',response.status);}
-  return raw?response.blob():response.json();
+  if(!response.ok){let data;try{data=await response.json();}catch{}const detail=data?.detail;if(!data&&boomiUrl&&response.status===401)throw new ApiError('Boomi rejected the proxy login. Check BOOMI_USERNAME and BOOMI_TOKEN in frontend/.env.local, then restart npm run dev.',401);throw new ApiError(typeof detail==='string'?detail:detail?detail.map(d=>d.loc.join('.')+': '+d.msg).join('; '):'Request failed ('+response.status+')',response.status);}
+  if(raw)return response.blob();
+  const result=await response.json();
+  // The Boomi process can answer a backend error with HTTP 200, so a bare {detail} body is treated as the error it is.
+  if(boomiUrl&&typeof result?.detail==='string'&&Object.keys(result).length===1)throw new ApiError(result.detail,401);
+  return result;
 }
 export const api={
+  health:()=>request('/health'),
   signup:body=>request('/api/auth/signup',{method:'POST',body}),
   login:(email,password)=>request('/api/auth/login',{method:'POST',body:{email,password}}),
   logout:()=>request('/api/auth/logout',{method:'POST'}),
