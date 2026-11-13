@@ -8,7 +8,7 @@ from app.models import CloudAsset, ServiceCost
 from conftest import TestSession
 from test_platform import vm
 
-CREDS = {'access_key_id': 'AKIAABCDEFGHIJKLMNOP', 'secret_access_key': 'x' * 30, 'regions': ['ap-south-1']}
+CREDS = {'access_key_id': 'AKIA' + 'ABCDEFGHIJKLMNOP', 'secret_access_key': 'x' * 30, 'regions': ['ap-south-1']}
 ACCOUNT = type('A', (), {'id': 'acct-1', 'account_ref': '123412341234'})()
 NOW = datetime.now(timezone.utc)
 

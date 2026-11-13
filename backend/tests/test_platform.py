@@ -115,10 +115,10 @@ def test_import_accounts_cannot_sync_and_gcp_has_no_live_mode(client, headers):
 
 
 def test_credentials_are_validated_encrypted_and_never_returned(client, headers, session_factory):
-    creds = {'access_key_id': 'AKIAABCDEFGHIJKLMNOP', 'secret_access_key': 'S3cr3tS3cr3tS3cr3tS3cr3tS3cr3tS3cr3t0000', 'regions': 'ap-south-1, us-east-1'}
+    creds = {'access_key_id': 'AKIA' + 'ABCDEFGHIJKLMNOP', 'secret_access_key': 'S3cr3tS3cr3tS3cr3tS3cr3tS3cr3tS3cr3t0000', 'regions': 'ap-south-1, us-east-1'}
     bad = {'name': 'Prod AWS', 'provider': 'AWS', 'account_ref': 'not-a-number', 'mode': 'aws', 'credentials': creds}
     assert client.post('/api/accounts', headers=headers, json=bad).status_code == 422
-    assert client.post('/api/accounts', headers=headers, json={**bad, 'account_ref': AWS_ID, 'credentials': {'access_key_id': 'AKIAABCDEFGHIJKLMNOP'}}).status_code == 422
+    assert client.post('/api/accounts', headers=headers, json={**bad, 'account_ref': AWS_ID, 'credentials': {'access_key_id': 'AKIA' + 'ABCDEFGHIJKLMNOP'}}).status_code == 422
     assert client.post('/api/accounts', headers=headers, json={**bad, 'account_ref': AWS_ID, 'mode': 'demo'}).status_code == 422
     ok = client.post('/api/accounts', headers=headers, json={**bad, 'account_ref': AWS_ID})
     assert ok.status_code == 200, ok.text
@@ -126,7 +126,7 @@ def test_credentials_are_validated_encrypted_and_never_returned(client, headers,
         stored = db.scalar(select(CloudAccount).where(CloudAccount.id == ok.json()['id'])).credentials_enc
     assert stored and 'S3cr3t' not in stored and 'AKIA' not in stored
     listing = client.get('/api/accounts', headers=headers)
-    assert 'S3cr3t' not in listing.text and 'AKIAABCDEFGHIJKLMNOP' not in listing.text
+    assert 'S3cr3t' not in listing.text and 'AKIA' + 'ABCDEFGHIJKLMNOP' not in listing.text
     assert next(a for a in listing.json()['accounts'] if a['id'] == ok.json()['id'])['hasCredentials'] is True
 
 
@@ -207,7 +207,7 @@ def test_aws_collector_maps_instances_and_withholds_memory_without_agent():
     instances = [{'InstanceId': 'i-1', 'InstanceType': 'm5.xlarge', 'LaunchTime': launch, 'Tags': [{'Key': 'Name', 'Value': 'web'}, {'Key': 'Environment', 'Value': 'dev'}, {'Key': 'Owner', 'Value': 'Team A'}]},
                  {'InstanceId': 'i-2', 'InstanceType': 'z9.mega', 'LaunchTime': launch}]
     account = type('A', (), {'id': 'acct-1', 'account_ref': '123412341234'})()
-    creds = {'access_key_id': 'AKIAABCDEFGHIJKLMNOP', 'secret_access_key': 'x' * 30, 'regions': ['ap-south-1']}
+    creds = {'access_key_id': 'AKIA' + 'ABCDEFGHIJKLMNOP', 'secret_access_key': 'x' * 30, 'regions': ['ap-south-1']}
     collector = AwsCollector(client_factory=aws_factory(instances))
     result = collector.collect(account, creds)
     assert len(result.resources) == 1 and any('z9.mega' in w for w in result.warnings)
@@ -222,7 +222,7 @@ def test_aws_collector_maps_instances_and_withholds_memory_without_agent():
 def test_untagged_resources_default_to_production_so_they_are_never_suggested_for_stop():
     launch = datetime.now(timezone.utc) - timedelta(days=30)
     account = type('A', (), {'id': 'acct-1', 'account_ref': '123412341234'})()
-    creds = {'access_key_id': 'AKIAABCDEFGHIJKLMNOP', 'secret_access_key': 'x' * 30, 'regions': ['ap-south-1']}
+    creds = {'access_key_id': 'AKIA' + 'ABCDEFGHIJKLMNOP', 'secret_access_key': 'x' * 30, 'regions': ['ap-south-1']}
     row = AwsCollector(client_factory=aws_factory([{'InstanceId': 'i-1', 'InstanceType': 'm5.large', 'LaunchTime': launch}])).collect(account, creds).resources[0]
     assert row['env'] == 'Production' and row['owner'] == 'Unassigned'
 

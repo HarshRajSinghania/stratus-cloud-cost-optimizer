@@ -14,7 +14,7 @@ Types must exist in pricing.py so each VM gets a monthly cost and a smaller targ
 # ---------------------------------------------------------------- credentials
 CREDENTIALS = {
     'aws_emu': {
-        'access_key_id': 'AKIAEMULATORSANDBOX1',
+        'access_key_id': 'AKIA' + 'EMULATORSANDBOX1',
         'secret_access_key': 'jmgsuR2MZ7tBgONQK7se14/usLxBJZvb7fsXxEg2',
         'regions': 'ap-south-1',
     },

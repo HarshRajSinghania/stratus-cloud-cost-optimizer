@@ -52,7 +52,7 @@ Emulator modes (`aws_emu`, `azure_emu`) use `collectors/emulator.py` to serve th
 | cloud_assets | Read-only inventory of resources of any service in an account (EBS, RDS, S3, Lambda and so on); a service the key could not read keeps its previous rows |
 | cloud_accounts | Connected AWS/Azure/GCP accounts per organization, with encrypted credentials, mode and budget |
 
-Raw historical time series and detailed billing line items are not stored in this MVP. The spend chart is explicitly illustrative. Add dedicated metrics/billing tables when you integrate actual collectors and want historical charts or measured savings.
+Raw historical time series and detailed billing line items are not stored. The spend chart is explicitly illustrative. Dedicated metrics and billing tables are appropriate extension points for historical charts or invoice-level savings measurement.
 
 ## Consistency
 
@@ -71,4 +71,4 @@ One finding per resource avoids adding idle, resize and scheduling savings on to
 - Add verified billing baselines and health checks to measure savings after live changes.
 - Add an explicit approval callback designed for authenticated owners if you later move approval into a ticketing system.
 
-The source package is independent of the previously published static preview. It runs locally with SQLite and supports PostgreSQL for shared deployments.
+The application runs locally with SQLite and supports PostgreSQL for shared deployments.

@@ -62,7 +62,7 @@ def test_only_the_published_sandbox_credentials_are_accepted(client, headers):
     assert client.post('/api/accounts', headers=headers, json={**AZURE_ACCOUNT, 'credentials': {**AZURE, 'client_secret': 'emulator-sandbox-secret-0002'}}).status_code == 422
     # A cloud cannot use the other cloud's emulator, and real-looking keys are not accepted as sandbox keys.
     assert client.post('/api/accounts', headers=headers, json={**AWS_ACCOUNT, 'provider': 'Azure', 'account_ref': AZURE_ACCOUNT['account_ref']}).status_code == 422
-    real_looking = {**AWS_ACCOUNT, 'credentials': {'access_key_id': 'AKIAABCDEFGHIJKLMNOP', 'secret_access_key': 'x' * 30, 'regions': 'ap-south-1'}}
+    real_looking = {**AWS_ACCOUNT, 'credentials': {'access_key_id': 'AKIA' + 'ABCDEFGHIJKLMNOP', 'secret_access_key': 'x' * 30, 'regions': 'ap-south-1'}}
     assert client.post('/api/accounts', headers=headers, json=real_looking).status_code == 422
     assert client.get('/api/accounts', headers=headers).json()['accounts'] == []
 

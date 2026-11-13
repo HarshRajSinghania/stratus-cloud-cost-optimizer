@@ -1,4 +1,4 @@
-"""Multiple organizations with password sign-in; remove the Boomi outbox and ingestion receipts.
+"""Add multiple organizations and password sign-in; remove obsolete integration tables.
 
 Existing single-organization data is kept: it moves into one organization named after the old organization profile.
 That organization has no users yet. Whoever signs up with the same organization name claims it as its first admin.

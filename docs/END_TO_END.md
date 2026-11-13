@@ -270,18 +270,18 @@ Inventory arrives only through the live read-only AWS and Azure collectors, demo
 | Back up | Back up `cloud_optimizer.db` (or the PostgreSQL database) **and** `SECRETS_KEY` |
 | Find out why something looks wrong | **Monitor**. Each issue lists the steps to fix it |
 
-## 8. Five-minute demo script
+## 8. Explore the complete workflow
 
-1. **Create an organization** on the sign-in page (name, email, password) or sign in. Point out the organization name, your admin role and the member list.
-2. **Cloud accounts → Add**: choose AWS, *Demo data*, set a $2,500 budget. A fleet and 14 days of history appear immediately.
-3. **Dashboard**: spend, savings, the by-cloud table and account budgets. Ask *"Which resources are idle?"*.
-4. **Opportunities → open an idle VM**: evidence, **High confidence · 14 readings**, history chart, cost arithmetic.
-5. **Approve**, then **Mark implemented**. Explain that a person makes the change in the cloud.
-6. **Savings**: the pipeline shows the saving as *Implemented*. Back on **Cloud accounts**, press **Sync now**. The VM is gone, and the entry flips to **Verified** with the dollar figure and an annualized total.
-7. **Monitor**: an under-pressure production VM, missing memory telemetry, and a budget warning, each with fix steps.
-8. **Compare services**, then **Report → Print or save as PDF**.
+1. **Create an organization** on the sign-in page or sign in.
+2. Under **Cloud accounts → Add**, choose AWS with *Demo data* and optionally set a budget. A synthetic fleet with 14 days of history appears immediately.
+3. Review spend, potential savings, provider totals and account budgets on the **Dashboard**.
+4. Open an idle VM under **Opportunities** to inspect evidence, confidence, history and cost calculations.
+5. Approve the recommendation, then mark it implemented. In a real account, make the corresponding change through your normal cloud-management process.
+6. Open **Savings** to inspect the pipeline. For a synthetic account, press **Sync now** to observe the recommendation move to Verified.
+7. Use **Monitor** to review resource pressure, missing telemetry and budget warnings with remediation steps.
+8. Review cross-cloud pricing under **Compare services** and export the executive report when needed.
 
-Be upfront on stage: demo accounts are synthetic (they apply your "implemented" change at the next sync to stand in for the real cloud), live AWS and Azure collectors are read-only and verified against recorded responses in tests rather than a customer account, and execution is a dry run by design.
+Synthetic accounts apply an implemented change on their next sync so the complete verification workflow can be evaluated without cloud credentials. Live AWS and Azure collectors are read-only and currently verified with simulated responses rather than customer accounts. Resource execution remains a dry run.
 
 ## 9. Current limits and next steps
 
@@ -290,6 +290,6 @@ Be upfront on stage: demo accounts are synthetic (they apply your "implemented" 
 * **List prices, not invoices.** Costs come from an approximate bundled on-demand price table. Verified savings mean "the instance cost fell", not "the bill fell". A billing-export reconciliation is the natural next step.
 * **Live collectors were tested with simulated cloud responses**, not against a real customer account. Run **Test** and **Sync now** on a non-production account first.
 * **Basic accounts only.** No email verification and no password reset (an admin sets passwords for members they add). Sign-up is open to anyone who can reach the API. Rate limiting is in memory per process. No single sign-on. Add these before wide rollout.
-* **Tenant isolation is tested** (`test_tenancy.py`; 58 backend tests pass on in-memory SQLite), and migration 0004 was verified on a clone of a real PostgreSQL database.
+* **Tenant isolation is covered by automated tests**, and migration 0004 was verified on a clone of a PostgreSQL database.
 * **Dry run.** Adding real execution needs a separately scoped identity, maintenance windows and rollback logic.
 * **Ask Stratus** is a keyword router, not a language model. It is deliberately traceable.

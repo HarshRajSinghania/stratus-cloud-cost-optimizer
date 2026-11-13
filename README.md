@@ -1,4 +1,4 @@
-# Cloud Cost Optimizer Agent — connected full-stack source
+# Stratus — open-source multi-cloud cost optimizer
 
 Run the frontend and backend directly on your computer. **SQLite works locally with no cloud account or database service.**
 
@@ -32,7 +32,7 @@ The dashboard is connected to the API. Organizations, users, inventory, findings
 - Database migrations, durable audit records and API-token authentication.
 - Optional OpenAI-compatible LLM explanations; deterministic explanation fallback without an API key.
 
-**Execution remains a dry run.** Stratus never changes a cloud resource. Live AWS and Azure collectors are read-only and were tested with simulated cloud responses, not a customer account. GCP is import or demo only. Costs are approximate on-demand list prices, so verified savings mean "the instance cost fell", not "the invoice fell". Demo accounts are synthetic. This is a local single-admin MVP, not a multi-tenant production deployment.
+**Safety boundary.** Stratus never changes a cloud resource. Live AWS and Azure collectors are read-only and currently verified with simulated cloud responses rather than customer accounts. GCP supports import and synthetic data. Costs use approximate on-demand list prices, so verified savings mean that a later resource reading costs less—not that a cloud invoice fell. Synthetic accounts are labelled in the UI. Review the [current limitations](docs/END_TO_END.md#9-current-limits-and-next-steps) before a production deployment.
 
 ## Screenshots
 
@@ -56,12 +56,10 @@ The dashboard is connected to the API. Organizations, users, inventory, findings
 | `backend/app/` | FastAPI routes, models, schemas, rules, services, organization scoping (`tenant.py`) and sample data |
 | `backend/alembic/` | Versioned database migrations |
 | `backend/tests/` | API workflow, validation and rule tests |
-| `boomi/` | Boomi Companion skill and Boomi components; run its scripts from inside this folder (see `boomi/README.md`) |
 | `scripts/setup.py` | Generate the local credential-encryption key and configuration template |
-| `docs/END_TO_END.md` | The complete flow from setup to verified savings, with a demo script |
-| `docs/API.md` | API routes and workflow contract |
+| `docs/END_TO_END.md` | Product workflow, operations, security model and limitations |
+| `docs/API_REFERENCE.md` | Complete API routes and contracts |
 | `docs/ARCHITECTURE.md` | Runtime flow, database and design choices |
-| `docs/VERIFICATION.md` | Checks performed and environment limitations |
 | `.env.example` | Server and database configuration template |
 
 ## Prerequisites
@@ -201,7 +199,7 @@ Preview is at http://localhost:4173 and also proxies the local backend. The Vite
 ## Optional integrations
 
 - **AI features** use the OpenAI key and model from the root `.env` only (`LLM_API_KEY`, `LLM_MODEL`, optional `LLM_BASE_URL`; leave the key empty to disable AI). Restart FastAPI after editing. Features: Ask Stratus (the model picks from the built-in data handlers), monitor diagnosis, AI executive summary, approval assist, anomaly explanation, spend-forecast explanation, and finding explanations. The rules still compute every figure, status and risk; the model only routes, explains and drafts, and has no write tools. Without a key everything falls back to the deterministic behavior. Resource names, owners and metrics are sent to the provider when you use these features. Calls are limited to 30 per minute per backend process.
-- Cloud account credentials are not needed for the sample workflow. Actual telemetry collectors and execution adapters are not included.
+- Cloud account credentials are not needed for the sample workflow. Live AWS and Azure collection is optional and read-only; execution adapters are intentionally not included.
 
 ## Troubleshooting
 
@@ -221,3 +219,23 @@ Preview is at http://localhost:4173 and also proxies the local backend. The Vite
 | CORS error with another frontend origin | Update `CORS_ORIGINS` in root `.env` and restart the backend |
 
 For an externally hosted frontend, configure an HTTPS API origin using `VITE_API_BASE_URL` at build time, CORS on the backend, and a trusted reverse proxy with TLS. The local proxy settings alone do not make the backend reachable on another computer.
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, engineering constraints, verification commands and pull-request expectations. Use the issue templates for reproducible bugs and focused feature proposals. Participation is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+Good first contribution areas include:
+
+- GCP inventory collection.
+- Additional optimization rules with explainable evidence.
+- Billing-export reconciliation.
+- Authentication and account-recovery improvements.
+- Accessibility, responsive layout and documentation.
+
+## Security
+
+Do not report vulnerabilities or include credentials in public issues. Follow [SECURITY.md](SECURITY.md) for private reporting and supported-version information.
+
+## License
+
+Stratus is available under the [MIT License](LICENSE). Contributions are accepted under the same license.
