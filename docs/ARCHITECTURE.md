@@ -1,18 +1,18 @@
 # Architecture
 
-The frontend and backend are ordinary host processes. PostgreSQL is hosted in TiDB Cloud and reached over verified TLS; Docker is not required.
+The frontend and backend are ordinary host processes. Local development uses a project-local SQLite file by default; shared deployments can use PostgreSQL over verified TLS. Docker is not required.
 
 ```mermaid
 flowchart TD
   UI["Frontend · Vite :5173"] -->|"Bearer-authenticated API"| API["Backend · FastAPI :8000"]
-  API --> DB[("Cloud PostgreSQL · TLS :5432")]
+  API --> DB[("SQLite local · PostgreSQL optional")]
   API --> Rules["Deterministic Python rules"]
   API -->|"Optional explanation"| LLM["Configured LLM provider"]
 ```
 
 ## Organizations, sign-in and accounts
 
-The app is multi-organization. A person creates an organization on the sign-in page (`POST /api/auth/signup`) and becomes its `admin`; admins add `member` or `admin` users with a password. A user belongs to exactly one organization and signs in with email and password (`POST /api/auth/login`). Passwords are hashed with scrypt. Sessions are random tokens stored hashed in PostgreSQL, tied to a user, and expire after `SESSION_HOURS`. Wrong passwords are rate-limited per email in memory. There is no email verification, password reset or single sign-on.
+The app is multi-organization. A person creates an organization on the sign-in page (`POST /api/auth/signup`) and becomes its `admin`; admins add `member` or `admin` users with a password. A user belongs to exactly one organization and signs in with email and password (`POST /api/auth/login`). Passwords are hashed with scrypt. Sessions are random tokens stored hashed in the configured database, tied to a user, and expire after `SESSION_HOURS`. Wrong passwords are rate-limited per email in memory. There is no email verification, password reset or single sign-on.
 
 **Isolation.** Every tenant table (`resources`, `recommendations`, `cloud_accounts`, `metric_snapshots`, `sync_runs`, `savings_ledger`, `audit_events`, `scans`) carries an `org_id`. After authentication a request's database session is bound to the user's organization (`backend/app/tenant.py`); every query filters by it and new rows are stamped with it on flush, so a row cannot be written without an organization. Resource ids are unique per organization (composite key), the same AWS account may be connected by two organizations, and another organization's id is answered with `404`. The background scheduler syncs each account inside its own organization. `backend/tests/test_tenancy.py` checks isolation across every route.
 
@@ -31,7 +31,7 @@ Emulator modes (`aws_emu`, `azure_emu`) use `collectors/emulator.py` to serve th
 1. The Vite dev/preview proxy forwards `/api` to host FastAPI. A deployed static frontend instead needs a reachable API URL or reverse proxy.
 2. FastAPI checks the session token, resolves the user's organization and binds the request to it before application access.
 3. Pydantic validates normalized input. The backend stores the latest resource snapshot and computes one recommendation per resource.
-4. PostgreSQL retains inventory and decisions across browser/backend restarts. The frontend reads authoritative findings; it does not duplicate optimization rules.
+4. The configured database retains inventory and decisions across browser/backend restarts. The frontend reads authoritative findings; it does not duplicate optimization rules.
 5. A decision checks resource generation, recommendation version, current status and action eligibility before committing it with an audit record.
 
 ## Tables
@@ -56,7 +56,7 @@ Raw historical time series and detailed billing line items are not stored in thi
 
 ## Consistency
 
-All write routes acquire a PostgreSQL transaction-scoped advisory lock keyed by organization, making one organization's imports, scans and decisions serialize across API workers without blocking other organizations. The lock is automatically released on commit or rollback.
+PostgreSQL deployments acquire a transaction-scoped advisory lock per organization on write routes, so one organization's imports, scans and decisions serialize without blocking other organizations. Local SQLite relies on its database-level write serialization and is intended for one backend process.
 
 Decision versions increase when input or status changes. A UUID generation distinguishes a newly created recommendation from an old recommendation with the same resource ID after deletion/reimport. The frontend must send both values. A stale request returns 409 and the UI refreshes its data.
 
@@ -71,4 +71,4 @@ One finding per resource avoids adding idle, resize and scheduling savings on to
 - Add verified billing baselines and health checks to measure savings after live changes.
 - Add an explicit approval callback designed for authenticated owners if you later move approval into a ticketing system.
 
-The source package is independent of the previously published static preview. It is intended to run locally using host processes connected to cloud PostgreSQL.
+The source package is independent of the previously published static preview. It runs locally with SQLite and supports PostgreSQL for shared deployments.

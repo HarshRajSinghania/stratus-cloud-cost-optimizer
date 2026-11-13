@@ -1,15 +1,15 @@
 # Cloud Cost Optimizer Agent — connected full-stack source
 
-Run the frontend and backend directly on your computer. **PostgreSQL is hosted in TiDB Cloud; Docker is not required.**
+Run the frontend and backend directly on your computer. **SQLite works locally with no cloud account or database service.**
 
 | Component | Technology | Local address |
 |---|---|---|
 | Frontend | JavaScript + Vite | http://localhost:5173 |
 | Backend | Python + FastAPI | http://127.0.0.1:8000 |
 | API documentation | Swagger UI | http://127.0.0.1:8000/docs |
-| Database | Cloud PostgreSQL over verified TLS | Your TiDB Cloud endpoint, port 5432 |
+| Database | SQLite by default; PostgreSQL optional | `cloud_optimizer.db` in the project root |
 
-The dashboard is connected to the API. Organizations, users, inventory, findings, decisions, scans and audit events persist in PostgreSQL. There is no browser-only fallback database.
+The dashboard is connected to the API. Organizations, users, inventory, findings, decisions, scans and audit events persist in the configured database. There is no browser-only fallback database.
 
 ## Included features
 
@@ -34,6 +34,20 @@ The dashboard is connected to the API. Organizations, users, inventory, findings
 
 **Execution remains a dry run.** Stratus never changes a cloud resource. Live AWS and Azure collectors are read-only and were tested with simulated cloud responses, not a customer account. GCP is import or demo only. Costs are approximate on-demand list prices, so verified savings mean "the instance cost fell", not "the invoice fell". Demo accounts are synthetic. This is a local single-admin MVP, not a multi-tenant production deployment.
 
+## Screenshots
+
+### Dashboard
+
+![Dashboard showing cloud spend, potential savings, and account health](docs/screenshots/dashboard.png)
+
+### Optimization recommendations
+
+![Optimization recommendations with evidence and estimated savings](docs/screenshots/recommendations.png)
+
+### Savings analysis
+
+![Savings analysis showing approved and verified optimization value](docs/screenshots/savings-analysis.png)
+
 ## Folder map
 
 | Folder / file | Purpose |
@@ -42,6 +56,7 @@ The dashboard is connected to the API. Organizations, users, inventory, findings
 | `backend/app/` | FastAPI routes, models, schemas, rules, services, organization scoping (`tenant.py`) and sample data |
 | `backend/alembic/` | Versioned database migrations |
 | `backend/tests/` | API workflow, validation and rule tests |
+| `boomi/` | Boomi Companion skill and Boomi components; run its scripts from inside this folder (see `boomi/README.md`) |
 | `scripts/setup.py` | Generate the local credential-encryption key and configuration template |
 | `docs/END_TO_END.md` | The complete flow from setup to verified savings, with a demo script |
 | `docs/API.md` | API routes and workflow contract |
@@ -53,14 +68,13 @@ The dashboard is connected to the API. Organizations, users, inventory, findings
 
 - Python 3.12 recommended.
 - Node.js 22.12+ or 24 and npm.
-- A running cloud PostgreSQL instance and its connection credentials.
-- Free local ports 5173 and 8000, and network access to the cloud database on port 5432.
+- Free local ports 5173 and 8000.
 
-Extract the ZIP first and open terminals in the extracted `cloud-cost-optimizer` folder. Keep your cloud database available.
+Extract the ZIP first and open terminals in the extracted `cloud-cost-optimizer` folder.
 
 ## Windows PowerShell setup
 
-### 1. Configure cloud PostgreSQL
+### 1. Create local configuration
 
 Run from the project root:
 
@@ -68,9 +82,7 @@ Run from the project root:
 py -3.12 scripts/setup.py
 ```
 
-Edit the root `.env` and set `DATABASE_URL` to your cloud PostgreSQL URL (see Database configuration below). If you do not have the Windows `py` launcher, use your Python 3.12 `python` command instead.
-
-The setup script creates a root `.env` with a generated encryption key and a placeholder database URL. It will refuse to overwrite an existing `.env`. Do not share it or commit the file. There are no API tokens to copy: you create an organization and sign in with an email and password in the app.
+The generated root `.env` uses a local SQLite database by default. The setup script also creates a unique credential-encryption key and refuses to overwrite an existing `.env`. Do not share or commit this file. PostgreSQL remains available for shared deployments; see Database configuration below.
 
 ### 2. Start the backend — terminal A
 
@@ -104,7 +116,7 @@ From the project root:
 python3 scripts/setup.py
 ```
 
-Set `DATABASE_URL` in the root `.env` to your cloud PostgreSQL URL, then in terminal A:
+The generated root `.env` uses local SQLite by default. To use PostgreSQL instead, replace `DATABASE_URL` as described under Database configuration. Then, in terminal A:
 
 ```bash
 cd backend
@@ -127,34 +139,40 @@ Open http://localhost:5173 and create an organization, as above.
 ## Verify the connection
 
 0. If you are upgrading an existing database, run `python -m alembic upgrade head` again. Migration 0004 moves the existing data into one organization (named after the old organization profile) that has no users yet: on the sign-in page choose **Create an organization** and enter that exact name to claim it as its admin. Existing sessions end and everyone signs in again.
-1. Visit http://127.0.0.1:8000/health. It should return `status: ok`, `database: postgresql`, and `execution_mode: dry-run`.
+1. Visit http://127.0.0.1:8000/health. It should return `status: ok`, `database: sqlite`, and `execution_mode: dry-run` for the default setup.
 2. After **Load sample inventory**, the dashboard should show 12 sample resources and 8 findings. Estimated potential is **$1,293/month** from a **$4,318/month** illustrative compute run rate.
 3. Review `checkout-staging-01`, enter a reviewer label and approve it.
 4. Go to Approvals, review it and simulate execution.
-5. Refresh the page or restart FastAPI: the decision and audit events remain in PostgreSQL.
+5. Refresh the page or restart FastAPI: the decision and audit events remain in the configured database.
 6. Import `docs/sample_inventory.json` from Cloud accounts → **Import JSON** to test the import pipeline.
 
 The reviewer label is descriptive; the signed-in member's email is recorded as the actor in the audit log. Roles are limited to admin and member, there is no email verification or password reset (an admin sets passwords for members they add), and there is no single sign-on. Those are future production work.
 
 ## Database configuration
 
-FastAPI and Alembic read `DATABASE_URL` from the root `.env`, regardless of your terminal's working directory. This deployment uses the PostgreSQL endpoint supplied by TiDB Cloud, with the existing `psycopg` driver.
+FastAPI and Alembic read `DATABASE_URL` from the root `.env`. The generated configuration uses a project-local SQLite file:
+
+```dotenv
+DATABASE_URL=sqlite+pysqlite:///../cloud_optimizer.db
+```
+
+The path is relative to the `backend` directory used by the documented commands. The resulting `cloud_optimizer.db` file is ignored by Git. Back up that file together with `SECRETS_KEY` if you need to preserve local data and encrypted cloud-account credentials.
+
+For a shared or hosted deployment, replace the setting with a PostgreSQL URL:
 
 ```dotenv
 DATABASE_URL=postgresql+psycopg://YOUR_USERNAME:YOUR_URL_ENCODED_PASSWORD@YOUR_HOST:5432/postgres?sslmode=verify-full&connect_timeout=15
 ```
 
-Use the database name shown in your cloud console; `postgres` is the default used here. URL-encode special characters in usernames and passwords. Keep real credentials only in the ignored `.env`, never in `.env.example` or frontend configuration.
+Use the database name shown by your provider. URL-encode special characters in usernames and passwords. The backend supplies the `certifi` CA bundle for `verify-full`; providers with a private CA can add `sslrootcert=/absolute/path/to/provider-ca.pem`. See [PostgreSQL SSL documentation](https://www.postgresql.org/docs/17/libpq-ssl.html).
 
-The backend verifies the server certificate and hostname using the `certifi` CA bundle. For a provider with a private CA, add `sslrootcert=/absolute/path/to/provider-ca.pem` to the URL. See [PostgreSQL SSL documentation](https://www.postgresql.org/docs/17/libpq-ssl.html).
-
-From `backend`, run `python -m alembic upgrade head` using your virtual environment before starting the API. This creates/upgrades application tables in the selected database. Switching the URL does not copy data from the previous local database. Keep the existing `SECRETS_KEY` if importing previous encrypted cloud-account credentials.
+From `backend`, run `python -m alembic upgrade head` using your virtual environment before starting the API. This creates or upgrades the application tables for either database. Switching `DATABASE_URL` does not copy data between databases. Keep the existing `SECRETS_KEY` if you migrate encrypted cloud-account credentials.
 
 ## Stop and restart
 
 - Press Ctrl+C in frontend and backend terminals.
 - Start FastAPI and Vite with the same commands above. Reinstallation and reseeding are unnecessary.
-- Manage the hosted database through the cloud console; it runs independently of the app.
+- SQLite stops with the backend and persists in `cloud_optimizer.db`; manage hosted PostgreSQL through its provider.
 
 ## Tests and builds
 
@@ -189,9 +207,9 @@ Preview is at http://localhost:4173 and also proxies the local backend. The Vite
 
 | Symptom | Fix |
 |---|---|
-| Backend refuses startup due to missing API tokens | Run `scripts/setup.py` from the root and check the root `.env` |
-| Database unavailable/schema missing | Check cloud database connectivity and run `python -m alembic upgrade head` from backend |
-| PostgreSQL password authentication failed | Ensure the cloud username, password and database name match `DATABASE_URL` in `.env` |
+| Backend refuses startup due to missing configuration | Run `scripts/setup.py` from the root and check the root `.env` |
+| Database unavailable/schema missing | Check `DATABASE_URL` and run `python -m alembic upgrade head` from `backend` |
+| PostgreSQL password authentication failed | Ensure the PostgreSQL username, password and database name match `DATABASE_URL` in `.env` |
 | Cannot reach backend | Keep uvicorn running on port 8000; check `frontend/vite.config.js` and optional `frontend/.env.local` |
 | Incorrect email or password | Check the email and password. Ask an admin of your organization to remove and re-add you if the password is lost (there is no reset yet) |
 | Too many incorrect attempts | Wait 10 minutes, or restart the backend |

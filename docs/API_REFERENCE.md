@@ -16,7 +16,7 @@ Interactive docs: `http://127.0.0.1:8000/docs`. Source of truth: `backend/app/ma
 | Body limit | POST bodies over 2 MB return `413` |
 | Response headers | `Cache-Control: no-store`, `X-Content-Type-Options: nosniff` |
 | Errors | `{"detail": "message"}`. `401` bad or missing token or wrong email/password, `403` admin-only action, `404` not found (or belongs to another organization), `409` conflict or stale, `413` body too large, `422` validation, `429` too many wrong passwords, `502` LLM provider down, `503` database unavailable |
-| Write safety | Every write takes a PostgreSQL advisory lock per organization, so one organization's writes are serialized and others are not blocked |
+| Write safety | PostgreSQL deployments take an advisory lock per organization; local SQLite uses its database-level write serialization and one backend process |
 | Execution | Always `dry-run`. No endpoint changes a cloud resource |
 
 ### Resource object (used by import)
@@ -101,7 +101,7 @@ The web frontend calls every route except #4, #28 (the member list arrives insid
 - **Parameters:** none.
 - **Response 200:**
 ```json
-{"status": "ok", "database": "postgresql", "execution_mode": "dry-run"}
+{"status": "ok", "database": "sqlite", "execution_mode": "dry-run"}
 ```
 - **Feature:** Setup verification and uptime checks. Not used by the UI.
 

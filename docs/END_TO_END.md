@@ -71,7 +71,7 @@ flowchart TB
     COL["Collectors<br/>aws · azure · demo"]
     VAULT["Credential vault<br/>Fernet encryption"]
     ING["Ingest<br/>validate, upsert, snapshot"]
-    DB[("PostgreSQL")]
+    DB[("SQLite local<br/>PostgreSQL optional")]
     RULES["Rules, confidence,<br/>anomalies, ledger"]
     API["FastAPI"]
     SCHED["Scheduler<br/>every 60 s check"]
@@ -100,7 +100,7 @@ flowchart TB
 ### 4.1 Setup (administrator, once)
 
 1. `python scripts/setup.py` creates `.env` with generated secrets, including `SECRETS_KEY` for the credential vault.
-2. Set the cloud PostgreSQL `DATABASE_URL` in the root `.env`, then in `backend`: install requirements, `alembic upgrade head`, and start `uvicorn`.
+2. The generated `DATABASE_URL` uses local SQLite. In `backend`: install requirements, run `alembic upgrade head`, and start `uvicorn`. Replace the URL with PostgreSQL for a shared deployment.
 3. In `frontend`: `npm ci` and `npm run dev`.
 4. Optionally set in `.env`: `SESSION_HOURS`, `SYNC_INTERVAL_MINUTES`. There is no shared code or admin token; the first user creates an organization on the sign-in page.
 
@@ -254,7 +254,7 @@ Inventory arrives only through the live read-only AWS and Azure collectors, demo
 | Cloud credentials | Encrypted at rest with Fernet using `SECRETS_KEY`. Never returned by the API, never logged. Error messages are scrubbed of credential values before being stored |
 | Cloud access | Read-only by design. No collector can change a resource. Execution is a dry run |
 | Cautious defaults | Untagged VMs count as Production. Production and critical VMs are never suggested for stopping. Missing telemetry withholds savings |
-| Integrity | One writer at a time (database advisory lock). Decisions are version-checked. Imports are validated in full and applied atomically |
+| Integrity | PostgreSQL serializes each organization's writes with an advisory lock; local SQLite uses one backend process and database-level write serialization. Decisions are version-checked. Imports are validated in full and applied atomically |
 | Audit | Every sign-in, sync, import, decision and account change is recorded with the actor's email |
 | Limits | 2 MB request bodies, 500 resources per import, 50 accounts |
 
@@ -267,7 +267,7 @@ Inventory arrives only through the live read-only AWS and Azure collectors, demo
 | Rotate cloud credentials | **Cloud accounts → Edit** and enter the new values |
 | Remove an account | **Remove**. Deletes its resources and recommendations and erases stored credentials. The audit log is kept |
 | Upgrade the database | `python -m alembic upgrade head` from `backend` |
-| Back up | Back up the PostgreSQL volume **and** `SECRETS_KEY` |
+| Back up | Back up `cloud_optimizer.db` (or the PostgreSQL database) **and** `SECRETS_KEY` |
 | Find out why something looks wrong | **Monitor**. Each issue lists the steps to fix it |
 
 ## 8. Five-minute demo script

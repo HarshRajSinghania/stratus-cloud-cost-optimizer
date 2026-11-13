@@ -194,8 +194,8 @@ def monitor(db: Session):
             ['Add accountId to these records and re-import, or import them through a specific account.']))
 
     if not db_ok:
-        issues.append(_issue('critical', 'pipeline', 'Database', 'Database unreachable', 'The API cannot query PostgreSQL.',
-            ['Confirm the cloud PostgreSQL instance is running and permits connections from this network.', 'Check DATABASE_URL, credentials and SSL settings in the root .env.']))
+        issues.append(_issue('critical', 'pipeline', 'Database', 'Database unreachable', 'The API cannot query the configured database.',
+            ['Confirm the database is available and writable.', 'Check DATABASE_URL in the root .env and run the database migrations.']))
     scan = db.scalar(select(Scan).where(Scan.org_id == org).order_by(Scan.created_at.desc()).limit(1))
     if resources and (scan is None or (now - _aware(scan.created_at)).total_seconds() > 86400):
         issues.append(_issue('info', 'pipeline', 'Analysis', 'No recent analysis', 'Recommendations may not reflect the latest rules.', ['Press Run analysis on the Opportunities page.']))

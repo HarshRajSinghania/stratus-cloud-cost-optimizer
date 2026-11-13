@@ -20,4 +20,4 @@ try:
 except OSError:
     pass
 print('Created .env with generated secrets. After the app starts, use "Create an organization" on the sign-in page.')
-print('Next: set DATABASE_URL in .env to your cloud PostgreSQL connection URL, then run backend migrations.')
+print('Next: run the backend migrations. SQLite works locally by default; README.md covers optional PostgreSQL.')

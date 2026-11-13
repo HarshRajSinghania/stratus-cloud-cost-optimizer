@@ -85,7 +85,7 @@ async def request_limits(request: Request, call_next):
 @app.exception_handler(SQLAlchemyError)
 async def database_error(request: Request, exc: SQLAlchemyError):
     # SQL exception strings can contain connection details and inventory values.
-    return JSONResponse({'detail': 'Database unavailable or schema missing. Check PostgreSQL and run alembic upgrade head.'}, 503)
+    return JSONResponse({'detail': 'Database unavailable or schema missing. Check DATABASE_URL and run alembic upgrade head.'}, 503)
 
 
 @app.get('/health')
